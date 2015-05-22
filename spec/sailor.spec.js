@@ -131,7 +131,6 @@ describe('Sailor', function () {
 
             runs(function(){
                 promise = sailor.connect().then(function(){
-                    console.log('processMessage');
                     return sailor.processMessage(payload, message);
                 }).fail(function(err){
                     console.log(err);
