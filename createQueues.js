@@ -216,6 +216,12 @@ amqpConnection.connect(settings.AMQP_URI).then(function() {
     var channel = amqpConnection.publishChannel;
 
     var queueCreator = new QueueCreator(channel);
+
+    /**
+     * queueCreator.makeQueuesForTheTask(task, execId) returns JSON object which contains .env vars for sailor for each of steps
+     * {"0": {...}, "1": {...}, "2": {....}} where 0,1,2 is step number in the flow
+     * and where each {...} contains TASK, STEP_ID, LISTEN_MESSAGES_ON, PUBLISH_MESSAGES_TO, ERROR_ROUTING_KEY, REBOUND_ROUTING_KEY, DATA_ROUTING_KEY
+     */
     queueCreator.makeQueuesForTheTask(task, execId).then(function(stepEnvVars){
         _.forOwn(stepEnvVars, function(envVars, stepNumber) {
             console.log('------------Step %s sailor settings-------------', stepNumber);
@@ -226,7 +232,5 @@ amqpConnection.connect(settings.AMQP_URI).then(function() {
         console.log('------------end-------------', stepNumber);
     })
 });
-
-
 
 
