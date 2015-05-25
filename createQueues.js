@@ -216,10 +216,10 @@ amqpConnection.connect(settings.AMQP_URI).then(function() {
     var channel = amqpConnection.publishChannel;
 
     var queueCreator = new QueueCreator(channel);
-    queueCreator.makeQueuesForTheTask(task, execId).then(function(stepSailorSettings){
-        _.forOwn(stepSailorSettings, function(settings, stepNumber) {
+    queueCreator.makeQueuesForTheTask(task, execId).then(function(stepEnvVars){
+        _.forOwn(stepEnvVars, function(envVars, stepNumber) {
             console.log('------------Step %s sailor settings-------------', stepNumber);
-            _.forOwn(settings, function(value, key){
+            _.forOwn(envVars, function(value, key){
                 console.log('%s=%s', key, value);
             });
         });
