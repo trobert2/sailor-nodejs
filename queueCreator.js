@@ -8,18 +8,34 @@ var _ = require('lodash');
  * and where each {...} contains TASK, STEP_ID, LISTEN_MESSAGES_ON, PUBLISH_MESSAGES_TO, ERROR_ROUTING_KEY, REBOUND_ROUTING_KEY, DATA_ROUTING_KEY
  *
  * Usage:
+ *
  * var queueCreator = new QueueCreator(channel);
  * queueCreator.makeQueuesForTheTask(task, execId).then(function(stepEnvVars){
  *  _.forEach(stepEnvVars, function (envVars, stepNumber) {
  *      .. run sailor for {stepNumber} with those envVars {envVars}
  *      .. but add AMQP_URI to .envVars
  *  });
- *
- *
  * });
  *
+ * Exchange name:
+ * {userId}_exchange
  *
+ * Queue names are:
+ * "{taskId}:{stepId}:{execId}:messages" (headers: taskId, execId, stepId)
+ * "{taskId}:{stepId}:{execId}:errors" (headers: taskId, execId, stepId)
+ * "{taskId}:{stepId}:{execId}:rebounds" (headers: taskId, execId, stepId, reboundReason)
  *
+ * Message tags in exchange are
+ * "{taskId}.{stepId}.{execId}.rebound" (headers: taskId, execId, stepId, reboundReason)
+ * "{taskId}.{stepId}.{execId}.requeue" (headers: taskId, execId, stepId)
+ * "{taskId}.{stepId}.{execId}.error" (headers: taskId, execId, stepId)
+ * "{taskId}.{stepId}.{execId}.result" (headers: taskId, execId, stepId)
+ *
+ * Routing is:
+ * rebound -> rebounds queue
+ * requeue -> back to messages queue (this is dead rebound)
+ * error -> errors queue
+ * result -> to the messages queue of next step
  */
 
 exports.QueueCreator = QueueCreator;
@@ -95,7 +111,7 @@ function QueueCreator(channel){
     }
 
     function getExchangeName(userId){
-        return "exchange:" + userId;
+        return util.format("%s_exchange", userId);
     }
 
     function getQueueName(taskId, stepId, execId, type) {
