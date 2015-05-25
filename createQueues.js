@@ -4,7 +4,7 @@ var Q = require('q');
 var util = require('util');
 var _ = require('lodash');
 
-var execId = "test_exec2";
+var execId = "test_exec3";
 
 var task = {
     "id" : "5559edd38968ec0736000003",
@@ -62,28 +62,6 @@ function QueueCreator(channel){
 
     var REBOUND_QUEUE_TTL = 10 * 60 * 1000; // 10 min
 
-    function getOrderedSteps(task){
-        var firstNode = _.findWhere(task.recipe.nodes, {"first" : true});
-        var nodeId = firstNode.id;
-        var result = [nodeId];
-        while (true) {
-            var connection = _.findWhere(task.recipe.connections, {"from" : nodeId});
-            if (!connection) break;
-            nodeId = connection["to"];
-            result.push(nodeId);
-        }
-        return result;
-    }
-
-    function printSailorSettings(sailorSettings, stepNum, stepId){
-        console.log('--------------------------------------------');
-        console.log('Step %s (%s) sailor .env vars:', stepNum, stepId);
-        _.forOwn(sailorSettings, function(value, key){
-            console.log('%s=%s', key, value);
-        });
-        console.log('--------------------------------------------');
-    }
-
     function makeQueuesForTheTask(task, execId){
 
         var steps = getOrderedSteps(task);
@@ -105,19 +83,22 @@ function QueueCreator(channel){
                 var errorsQueue = getQueueName(task.id, stepId, execId, "errors"); // step1:errors (errors)
                 var reboundsQueue = getQueueName(task.id, stepId, execId, "rebounds"); // step1:rebounds (rebounds)
 
-                var reboundReturnTag   = getRoutingTag(task.id, stepId, execId, "reboundreturn"); // step1.reboundreturn (incoming msg)
                 var resultTag = getRoutingTag(task.id, stepId, execId, "result"); // step1.result (outgoing msg)
                 var errorTag   = getRoutingTag(task.id, stepId, execId, "error"); // step1.error (error)
                 var reboundTag = getRoutingTag(task.id, stepId, execId, "rebound"); // step1.rebound (rebound)
+                var requeueTag   = getRoutingTag(task.id, stepId, execId, "requeue"); // step1.requeue (requeued messages)
 
+                // create queues for messages, errors, rebounds
                 stepPromises.push(assertQueue(messagesQueue));
                 stepPromises.push(assertQueue(errorsQueue));
-                stepPromises.push(assertReboundsQueue(reboundsQueue, exchangeName, reboundReturnTag)); // return rebounds to messages
+                stepPromises.push(assertReboundsQueue(reboundsQueue, exchangeName, requeueTag)); // return rebounds to messages
 
-                stepPromises.push(subscribeQueueToKey(messagesQueue, exchangeName, reboundReturnTag)); // listen messages
+                // subscribe queues for their tags
+                stepPromises.push(subscribeQueueToKey(messagesQueue, exchangeName, requeueTag)); // listen requeued messages
                 stepPromises.push(subscribeQueueToKey(errorsQueue, exchangeName, errorTag)); // listen errors
                 stepPromises.push(subscribeQueueToKey(reboundsQueue, exchangeName, reboundTag)); // listen rebounds
 
+                // subscribe messages queue for results from previous step
                 if (steps[i-1]) {
                     var prevStepResultsTag = getRoutingTag(task.id, steps[i-1], execId, "result");
                     stepPromises.push(subscribeQueueToKey(messagesQueue, exchangeName, prevStepResultsTag)); // listen results from prev. step
@@ -142,6 +123,7 @@ function QueueCreator(channel){
             // when all necessary queues are created
             return Q.all(promises).then(function(){
                 console.log('All queues are created');
+                return Q(stepsSailorSettings);
             });
         });
     }
@@ -201,6 +183,28 @@ function QueueCreator(channel){
         });
     }
 
+    function getOrderedSteps(task){
+        var firstNode = _.findWhere(task.recipe.nodes, {"first" : true});
+        var nodeId = firstNode.id;
+        var result = [nodeId];
+        while (true) {
+            var connection = _.findWhere(task.recipe.connections, {"from" : nodeId});
+            if (!connection) break;
+            nodeId = connection["to"];
+            result.push(nodeId);
+        }
+        return result;
+    }
+
+    function printSailorSettings(sailorSettings, stepNum, stepId){
+        console.log('--------------------------------------------');
+        console.log('Step %s (%s) sailor .env vars:', stepNum, stepId);
+        _.forOwn(sailorSettings, function(value, key){
+            console.log('%s=%s', key, value);
+        });
+        console.log('--------------------------------------------');
+    }
+
     this.makeQueuesForTheTask = makeQueuesForTheTask;
 }
 
@@ -212,8 +216,14 @@ amqpConnection.connect(settings.AMQP_URI).then(function() {
     var channel = amqpConnection.publishChannel;
 
     var queueCreator = new QueueCreator(channel);
-    queueCreator.makeQueuesForTheTask(task, execId).then(function(){
-        process.exit(0);
+    queueCreator.makeQueuesForTheTask(task, execId).then(function(stepSailorSettings){
+        _.forOwn(stepSailorSettings, function(settings, stepNumber) {
+            console.log('------------Step %s sailor settings-------------', stepNumber);
+            _.forOwn(settings, function(value, key){
+                console.log('%s=%s', key, value);
+            });
+        });
+        console.log('------------end-------------', stepNumber);
     })
 });
 
