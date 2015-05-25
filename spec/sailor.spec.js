@@ -82,7 +82,7 @@ describe('Sailor', function () {
 
             runs(function(){
                 expect(promise.isFulfilled()).toBeTruthy();
-                expect(fakeMongoConnection.disconnect).toHaveBeenCalled();
+                //expect(fakeMongoConnection.disconnect).toHaveBeenCalled();
                 expect(fakeAMQPConnection.disconnect).toHaveBeenCalled();
             });
 
