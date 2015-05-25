@@ -13,7 +13,7 @@ var _ = require('lodash');
  * queueCreator.makeQueuesForTheTask(task, execId).then(function(stepEnvVars){
  *  _.forEach(stepEnvVars, function (envVars, stepNumber) {
  *      .. run sailor for {stepNumber} with those envVars {envVars}
- *      .. but add AMQP_URI to .envVars
+ *      .. but add to .envVars also AMQP_URI and MESSAGE_CRYPTO_PASSWORD (user's crypto)
  *  });
  * });
  *
