@@ -74,14 +74,13 @@ amqpConnection.connect(settings.AMQP_URI).then(function() {
      */
 
     queueCreator.makeQueuesForTheTask(task, execId).then(function(stepEnvVars){
-        _.forOwn(stepEnvVars, function (envVars, stepNumber) {
+        _.forEach(stepEnvVars, function (envVars, stepNumber) {
             console.log('------------Step %s sailor settings-------------', stepNumber);
             _.forOwn(envVars, function(value, key){
                 console.log('%s=%s', key, value);
             });
         });
         console.log('------------end-------------');
-
     }).fail(function (err) {
         console.log(err);
     }).done();

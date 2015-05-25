@@ -6,6 +6,20 @@ var _ = require('lodash');
  * queueCreator.makeQueuesForTheTask(task, execId) returns JSON object which contains .env vars for sailor for each of steps
  * {"0": {...}, "1": {...}, "2": {....}} where 0,1,2 is step number in the flow
  * and where each {...} contains TASK, STEP_ID, LISTEN_MESSAGES_ON, PUBLISH_MESSAGES_TO, ERROR_ROUTING_KEY, REBOUND_ROUTING_KEY, DATA_ROUTING_KEY
+ *
+ * Usage:
+ * var queueCreator = new QueueCreator(channel);
+ * queueCreator.makeQueuesForTheTask(task, execId).then(function(stepEnvVars){
+ *  _.forEach(stepEnvVars, function (envVars, stepNumber) {
+ *      .. run sailor for {stepNumber} with those envVars {envVars}
+ *      .. but add AMQP_URI to .envVars
+ *  });
+ *
+ *
+ * });
+ *
+ *
+ *
  */
 
 exports.QueueCreator = QueueCreator;
