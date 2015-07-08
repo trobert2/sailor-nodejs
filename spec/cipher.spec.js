@@ -52,4 +52,14 @@ describe('Cipher', function () {
         var result = cipher.decryptMessageContent('MhcbHNshDRy6RNubmFJ+u4tcKKTKT6H50uYMyBXhws1xjvVKRtEC0hEg0/R2Zecy');
         expect(result).toEqual({"someKey":"someValue"});
     });
+
+    it('IV-powered cipher should encrypt & decrypt objects', function () {
+        var iv = 'iv=any16_symbols';
+        var content = {property1: 'Hello world'};
+
+        var result = cipher.encryptIV(JSON.stringify(content), iv);
+        var decryptedResult = cipher.decryptIV(result, iv);
+
+        expect(decryptedResult).toEqual(JSON.stringify(content));
+    });
 });
